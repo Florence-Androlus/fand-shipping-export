@@ -1,7 +1,7 @@
 <?php
 
 namespace fdse\templates;
-
+use fdse\includes\Export_File;
 
 class Templates{
 
@@ -47,14 +47,30 @@ class Templates{
 
                 // Affichez la commande dans le tableau
                 // Accédez aux données de la commande
+                //<td> <input class="form-check-input" type="checkbox" value="'.$numero_commande.'" id="Check'.$numero_commande.'" ></td>
                 $numero_commande = $commande->get_order_number();
                 $date_commande = $commande->get_date_created();
                 $statut_commande = $commande->get_status();
+
+                // Vérifiez si la commande est cochée dans le tableau POST
+                $idChecked = isset($_POST['selectedOrders']) ? $_POST['selectedOrders'] : []; 
+                $checkedAttribute='';
+
+                if (!empty($idChecked)){
+
+                $isChecked = in_array($numero_commande, $idChecked);
+                $checkedAttribute = $isChecked ? 'checked' : '';
+
+                }
+
+                // Utilisez l'opérateur ternaire pour ajouter l'attribut "checked" si la commande est cochée
+
+
                 echo '<tr>
                         <td>'.$numero_commande.'</td>
                         <td>'.$date_commande.'</td>
                         <td>'.$statut_commande.'</td>
-                        <td> <input class="form-check-input" type="checkbox" value="'.$numero_commande.'" id="Check'.$numero_commande.'" ></td>
+                        <td> <input class="form-check-input" type="checkbox" value="' . $commande_id . '" name="selectedOrders[]" ' . $checkedAttribute . '></td>
                     </tr>';
 
             }
@@ -87,170 +103,25 @@ class Templates{
             echo '<option value="' . $i . '" ' . ($selectedDate === strval($i) ? 'selected' : '') . '>J+' . $i . '</option>';
         }
         echo '</select>';
-        echo ' <input type="hidden" id="selectedDate" name="selectedDate" value="">';   
+        echo ' <input type="hidden" id="selectedDate" name="selectedDate" value="'.$selectedDate.'">';   
     }
 
     static public function Template_button($tableDisplay){
         echo '<table class="table table-striped" id="commandeTable" style="display: ' . $tableDisplay . ';">
             <tr>
-                <td>
-                    <a class="page-title-action" href="?page=fand-shipping-export-plugin&export=colis">Export Colis</a>
+                <td>';
+                echo ' <input type="hidden" id="export" name="export" value="colis">';   
+                echo '<input type="submit" id="exportfile" class="page-title-action" value="Export Colis">';
+
+
+                echo'    <a class="page-title-action" href="?page=fand-shipping-export-plugin&export=colis&selectedOrders=selectedOrders[]">Export Colis</a>
                 </td>
                 <td style="text-align:right">
                     <a class="page-title-action" href="?page=fand-shipping-export-plugin&export=cond">Export Conditionnement</a>
                 </td>
             </tr>';
         echo '</table>';
-    }
-    
-    static public function export_file(){
-        // Vérifier si le paramètre "export" est défini dans l'URL
 
-        if (isset($_GET['export'])) {
-            // Obtenir la valeur du paramètre "export"
-            $exportType = $_GET['export'];
-
-            // Définir le chemin du répertoire de destination
-                    // Obtenir le répertoire d'uploads de WordPress
-            $upload_dir = wp_upload_dir();
-            
-            // Obtenez le chemin complet du répertoire de destination (ajoutez votre sous-dossier personnalisé)
-            $custom_directory = $upload_dir['basedir'] . '/fand-shipping-export/'.$exportType.'/';
-
-            // Assurez-vous que le répertoire de destination existe, sinon créez-le
-            if (!file_exists($custom_directory)) {
-                mkdir($custom_directory, 0777, true);
-            }
-            
-            // Utiliser un switch pour appeler la méthode appropriée en fonction de la valeur du paramètre
-            switch ($exportType) {
-                case 'colis':
-                    $filename = 'export_colis_' . date('YmdHis') . '.csv'; // Nom du fichier avec heure actuelle
-                    self::exportColis($custom_directory . $filename); // Appeler la méthode pour l'export de colis
-                    break;
-    
-                case 'cond':
-                    $filename = 'export_conditionnement_' . date('YmdHis') . '.csv'; // Nom du fichier avec heure actuelle
-                    self::exportConditionnement($custom_directory . $filename); // Appeler la méthode pour l'export de conditionnement
-                    break;
-                default:
-                    // Gérer le cas où le paramètre "export" n'est pas valide
-                    // Vous pouvez afficher un message d'erreur ou rediriger l'utilisateur, par exemple.
-                    break;
-            }
-        }
-    }
-    
-    static private function exportColis($filePath){
-        // Code pour l'export de colis
-        global $wpdb;
-        // Obtenez les identifiants de publication des commandes WooCommerce
-        $commande_ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_order'");
-
-        if(!$handle=fopen($filePath,'w'))
-        {
-            die('Ouverture du fichier '.$filePath.' impossible');
-        }
-        file_put_contents($filePath, 'Contenu du fichier CSV pour les colis');
-        $r='';
-        $r.= '"numero commande";';
-        $r.=  '"date_commande";';
-        $r.=  '"statut_commande";';
-        $r.="\n";
-        
-        if (fwrite($handle, $r) === FALSE) {
-            var_dump("Impossible d'écrire dans le fichier ") ;
-            exit;
-        }
-
-        foreach ($commande_ids as $commande_id) {
-            $commande = wc_get_order($commande_id);
-    
-            // Affichez la commande dans le tableau
-            // Accédez aux données de la commande
-            $numero_commande = $commande->get_order_number();
-            $date_commande = $commande->get_date_created();
-            $statut_commande = $commande->get_status();
-
-            $r='';
-            $r.= '"'.$numero_commande.'";';
-            $r.= '"'.$date_commande.'";';
-            $r.= '"'.$statut_commande.'";';
-            $r.="\n";
-            if (fwrite($handle, $r) === FALSE) {
-                echo "Impossible d'écrire dans le fichier ";
-                exit;
-            }
-        }  
-
-        fclose($handle); 
-        self::downloadLink($filePath);
-        exit;
-    }
-
-    static private function exportConditionnement($filePath){
-        // Code pour l'export de conditionnement
-        global $wpdb;
-        // Obtenez les identifiants de publication des commandes WooCommerce
-        $commande_ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_order'");
-
-        if(!$handle=fopen($filePath,'w'))
-        {
-            die('Ouverture du fichier '.$filePath.' impossible');
-        }
-        // var_dump($filePath);
-        file_put_contents($filePath, 'Contenu du fichier CSV pour les colis');
-        $r='';
-        $r.= '"numero commande";';
-        $r.=  '"date_commande";';
-        $r.=  '"statut_commande";';
-        $r.="\n";
-        
-        if (fwrite($handle, $r) === FALSE) {
-            var_dump("Impossible d'écrire dans le fichier ") ;
-            exit;
-        }
-
-        foreach ($commande_ids as $commande_id) {
-            $commande = wc_get_order($commande_id);
-    
-            // Affichez la commande dans le tableau
-            // Accédez aux données de la commande
-            $numero_commande = $commande->get_order_number();
-            $date_commande = $commande->get_date_created();
-            $statut_commande = $commande->get_status();
-
-            $r='';
-            $r.= '"'.$numero_commande.'";';
-            $r.= '"'.$date_commande.'";';
-            $r.= '"'.$statut_commande.'";';
-            $r.="\n";
-            if (fwrite($handle, $r) === FALSE) {
-                echo "Impossible d'écrire dans le fichier ";
-                exit;
-            }
-        }  
-
-        fclose($handle); 
-        self::downloadLink($filePath);
-        exit;
-    }
-
-    static private function downloadLink($cheminFichierCSV){
-        // Vérifiez si le fichier CSV existe
-        if (file_exists($cheminFichierCSV)) {
-            // Paramètres pour le téléchargement
-            header('Content-Type: application/csv');
-            header('Content-Disposition: attachment; filename=' . basename($cheminFichierCSV));
-            
-            // Lire le fichier CSV et le transmettre au client
-            ob_clean();
-            flush();
-            readfile($cheminFichierCSV);
-            exit;
-        } else {
-            echo 'Le fichier CSV n\'existe pas.';
-        }
     }
 
 }

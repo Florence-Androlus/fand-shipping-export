@@ -11,6 +11,7 @@ class WP_Fand_Shipping_Export {
     
         add_action('init', [$this,'wpfse_create_order_roles']);
         add_action( 'admin_menu', [$this,'wpfse_add_menu_page'] );
+        //add_action( 'wp_ajax_wpfse_export_orders', [$this,'wpfse_export_orders'] );
 	}
 
 
@@ -71,6 +72,20 @@ function fand_shipping_list() {
     }
    
 }
+
+// Export orders to Excel files for shipping
+/*function wpfse_export_orders() {
+    $export_success=true;
+    // Return success or error message
+    if ( $export_success===true ) {
+        $message = 'Orders exported successfully.';
+    } else {
+        $message = 'Error exporting orders.';
+    }
+    echo $message;
+    wp_die();
+}*/
+
 
 }
 

@@ -6,33 +6,38 @@ class Export_File{
 
     static public function export_file(){
         // Vérifier si le paramètre "export" est défini dans l'URL
+        var_dump(!empty($_POST['export']));
+           // Obtenir la valeur du paramètre "export"
+            if (!empty($_POST['export'])) {
+                $exportType = $_POST['export'];
 
-        if (isset($_GET['export'])) {
-            // Obtenir la valeur du paramètre "export"
-            $exportType = $_GET['export'];
+                var_dump($exportType);
+                //die;
 
             // Définir le chemin du répertoire de destination
-            // Obtenir le répertoire d'uploads de WordPress
+                    // Obtenir le répertoire d'uploads de WordPress
             $upload_dir = wp_upload_dir();
             
             // Obtenez le chemin complet du répertoire de destination (ajoutez votre sous-dossier personnalisé)
             $custom_directory = $upload_dir['basedir'] . '/fand-shipping-export/'.$exportType.'/';
-
-            // On s'assure que le répertoire de destination existe, sinon créez-le
+            $filename = $custom_directory . 'export_'.$exportType.'_' . date('YmdHis') . '.csv'; // Nom du fichier avec heure actuelle
+ 
+            // Assurez-vous que le répertoire de destination existe, sinon créez-le
             if (!file_exists($custom_directory)) {
                 mkdir($custom_directory, 0777, true);
             }
-            
-            // On utilise un switch pour appeler la méthode appropriée en fonction de la valeur du paramètre
+            if (isset($_POST['selectedOrders']) && is_array($_POST['selectedOrders']) && !empty($_POST['selectedOrders'])) {
+                $selectedOrders = $_POST['selectedOrders'];
+                var_dump($selectedOrders);
+            }
+      
+            // Utiliser un switch pour appeler la méthode appropriée en fonction de la valeur du paramètre
             switch ($exportType) {
                 case 'colis':
-                    $filename = 'export_colis_' . date('YmdHis') . '.csv'; // Nom du fichier avec heure actuelle
-                    self::exportColis($custom_directory . $filename); // Appeler la méthode pour l'export de colis
+                    self::exportColis($filename,$selectedOrders); // Appeler la méthode pour l'export de colis
                     break;
-    
                 case 'cond':
-                    $filename = 'export_conditionnement_' . date('YmdHis') . '.csv'; // Nom du fichier avec heure actuelle
-                    self::exportConditionnement($custom_directory . $filename); // Appeler la méthode pour l'export de conditionnement
+                    self::exportConditionnement( $filename,$selectedOrders); // Appeler la méthode pour l'export de conditionnement
                     break;
                 default:
                     // Gérer le cas où le paramètre "export" n'est pas valide
@@ -40,13 +45,11 @@ class Export_File{
                     break;
             }
         }
+
     }
     
-    static private function exportColis($filePath){
+    static private function exportColis($filePath,$selectedOrders){
         // Code pour l'export de colis
-        global $wpdb;
-        // Obtenir les identifiants de publication des commandes WooCommerce
-        $commande_ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_order'");
 
         if(!$handle=fopen($filePath,'w'))
         {
@@ -64,7 +67,7 @@ class Export_File{
             exit;
         }
 
-        foreach ($commande_ids as $commande_id) {
+        foreach ($selectedOrders as $commande_id) {
             $commande = wc_get_order($commande_id);
     
             // Affichez la commande dans le tableau
@@ -90,11 +93,8 @@ class Export_File{
         exit;
     }
 
-    static private function exportConditionnement($filePath){
+    static private function exportConditionnement($filePath,$selectedOrders){
         // Code pour l'export de conditionnement
-        global $wpdb;
-        // Obtenir les identifiants de publication des commandes WooCommerce
-        $commande_ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_order'");
 
         if(!$handle=fopen($filePath,'w'))
         {
@@ -113,7 +113,7 @@ class Export_File{
             exit;
         }
 
-        foreach ($commande_ids as $commande_id) {
+        foreach ($selectedOrders as $commande_id) {
             $commande = wc_get_order($commande_id);
     
             // Affichez la commande dans le tableau
