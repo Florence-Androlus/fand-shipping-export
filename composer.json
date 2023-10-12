@@ -1,0 +1,14 @@
+{
+    "name": "androlus/fand-shipping-export",
+    "authors": [
+        {
+            "name": "Androlus Florence",
+            "email": "contact@fan-develop.fr"
+        }
+    ],
+   
+    "autoload": {
+        "psr-4": {"fdse\\": "."}
+    }
+
+}
